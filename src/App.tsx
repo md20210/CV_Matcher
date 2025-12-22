@@ -1,20 +1,37 @@
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { Landing } from './components/Landing'
+import { Login } from './components/auth/Login'
+import { Register } from './components/auth/Register'
+import { Dashboard } from './components/Dashboard'
+import { CVMatcher } from './components/CVMatcher'
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="min-h-screen bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 py-8">
-            <h1 className="text-4xl font-bold text-center text-primary-600">
-              CV Matcher
-            </h1>
-            <p className="text-center text-gray-600 mt-2">
-              AI-Powered Resume Analysis - Coming Soon
-            </p>
-          </div>
-        </div>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/matcher"
+            element={
+              <ProtectedRoute>
+                <CVMatcher />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   )
