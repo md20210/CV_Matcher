@@ -1,0 +1,1 @@
+const { user, loading, login, register, logout, isAuthenticated } = useAuth()
