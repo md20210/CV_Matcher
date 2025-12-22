@@ -1,0 +1,16 @@
+import { projectsService } from '../services/projects'
+
+// Projekt erstellen
+const project = await projectsService.createProject('Mein Projekt', 'cv_matching', 'Beschreibung')
+
+// Alle Projekte laden
+const projects = await projectsService.listProjects()
+
+// Einzelnes Projekt laden
+const project = await projectsService.getProject('project-id')
+
+// Projekt aktualisieren
+const updated = await projectsService.updateProject('project-id', { name: 'Neuer Name' })
+
+// Projekt löschen
+await projectsService.deleteProject('project-id')
