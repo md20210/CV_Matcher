@@ -1,0 +1,4 @@
+import { llmService } from '../services/llm'
+
+const matchResult = await llmService.analyzeMatch(cvText, jobDescription)
+// matchResult enthält: overallScore, strengths, gaps, recommendations, detailedAnalysis
