@@ -1,0 +1,5 @@
+<JobDescriptionInput
+  onAnalyze={(description, title, company) => {
+    // Verarbeite die Stellenbeschreibung
+  }}
+/>
