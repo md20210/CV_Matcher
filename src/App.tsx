@@ -4,7 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Landing } from './components/Landing'
 import { Login } from './components/auth/Login'
 import { Register } from './components/auth/Register'
-import { Dashboard } from './components/Dashboard'
+import { Dashboard } from './components/dashboard/Dashboard'
 import { CVMatcher } from './components/CVMatcher'
 
 function App() {
