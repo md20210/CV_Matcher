@@ -1,11 +1,13 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './hooks/useAuth'
-import { ProtectedRoute } from './components/ProtectedRoute'
-import { Landing } from './components/Landing'
-import { Login } from './components/auth/Login'
-import { Register } from './components/auth/Register'
-import { Dashboard } from './components/dashboard/Dashboard'
-import { CVMatcher } from './components/CVMatcher'
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './hooks/useAuth';
+import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
+import Landing from './components/Landing';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import Dashboard from './components/Dashboard';
+import CVMatcherPage from './components/matching/CVMatcherPage';
 
 function App() {
   return (
@@ -19,22 +21,26 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
               </ProtectedRoute>
             }
           />
           <Route
-            path="/matcher"
+            path="/cv-matcher"
             element={
               <ProtectedRoute>
-                <CVMatcher />
+                <Layout>
+                  <CVMatcherPage />
+                </Layout>
               </ProtectedRoute>
             }
           />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;
