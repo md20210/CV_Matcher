@@ -1,0 +1,3 @@
+import { extractTextFromPDF } from '../utils/pdfParser'
+
+const text = await extractTextFromPDF(file)
