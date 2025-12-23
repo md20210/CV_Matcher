@@ -19,9 +19,9 @@ class LLMService {
   /**
    * Analysiert die Übereinstimmung zwischen CV und Stellenbeschreibung
    */
-  async analyzeMatch(cvText: string, jobDescription: string, llmType: 'local' | 'grok' = 'local'): Promise<MatchResult> {
+  async analyzeMatch(cvText: string, jobDescription: string, llmType: 'local' | 'grok' = 'local', language: 'de' | 'en' | 'es' = 'de'): Promise<MatchResult> {
     try {
-      const prompt = this.buildMatchAnalysisPrompt(cvText, jobDescription)
+      const prompt = this.buildMatchAnalysisPrompt(cvText, jobDescription, language)
 
       const response = await api.post<LLMGenerateResponse>('/llm/generate', {
         prompt,
@@ -45,9 +45,19 @@ class LLMService {
   }
 
   /**
-   * Erstellt den Prompt für die Match-Analyse (auf Deutsch für bessere Ergebnisse)
+   * Erstellt den Prompt für die Match-Analyse in der gewählten Sprache
    */
-  private buildMatchAnalysisPrompt(cvText: string, jobDescription: string): string {
+  private buildMatchAnalysisPrompt(cvText: string, jobDescription: string, language: 'de' | 'en' | 'es'): string {
+    const prompts = {
+      de: this.buildGermanPrompt(cvText, jobDescription),
+      en: this.buildEnglishPrompt(cvText, jobDescription),
+      es: this.buildSpanishPrompt(cvText, jobDescription)
+    };
+
+    return prompts[language];
+  }
+
+  private buildGermanPrompt(cvText: string, jobDescription: string): string {
     return `Du bist ein erfahrener HR-Analyst. Analysiere gründlich die Übereinstimmung zwischen dieser Stellenbeschreibung und dem Bewerber-CV.
 
 STELLENBESCHREIBUNG:
@@ -134,6 +144,166 @@ WICHTIG:
 - detailedAnalysis mindestens 300 Wörter
 - Alle Texte auf Deutsch
 - NUR JSON zurückgeben, kein zusätzlicher Text
+
+JSON:`
+  }
+
+  private buildEnglishPrompt(cvText: string, jobDescription: string): string {
+    return `You are an experienced HR analyst. Thoroughly analyze the match between this job description and the candidate's CV.
+
+JOB DESCRIPTION:
+${jobDescription.substring(0, 2000)}
+
+RESUME/CV:
+${cvText.substring(0, 2000)}
+
+ANALYZE THE FOLLOWING ASPECTS IN DETAIL:
+
+1. **Technical Qualifications**: Compare each requirement with skills/experience in the CV
+2. **Work Experience**: Years, industries, areas of responsibility, leadership experience
+3. **Technical Skills**: Programming languages, frameworks, tools, certifications
+4. **Soft Skills**: Teamwork, communication, problem-solving (derived from projects)
+5. **Cultural Fit**: Industry experience, company types (startup vs. corporation)
+6. **Development Potential**: Learning willingness, training, career progression
+
+EVALUATION GUIDELINES:
+- **overallScore**: 0-100%, based on weighted match of all requirements
+- **strengths**: At least 5 concrete strengths with evidence from the CV
+- **gaps**: At least 3 identified gaps or missing qualifications
+- **recommendations**: 3-5 concrete, actionable recommendations (training, education, gaining experience)
+- **detailedAnalysis**: 3-5 paragraphs with in-depth analysis (Why this score? Which factors? Future potential?)
+- **comparison**: Evaluate ALL main requirements individually (at least 8 items!)
+  - requirement: Exact requirement from job description
+  - applicant_match: Concrete qualification/experience from CV
+  - details: Detailed justification of the assessment (1-2 sentences!)
+  - match_level: "full" (100% met), "partial" (partially), "missing" (not present)
+  - confidence: 0-100% how certain the assessment is
+
+CRITICALLY IMPORTANT:
+- USE ONLY REAL DATA FROM THE DOCUMENTS ABOVE!
+- DO NOT INVENT INFORMATION!
+- REPLACE ALL PLACEHOLDERS WITH REAL FACTS!
+- NEVER WRITE PLACEHOLDERS LIKE "[...]" IN THE ANSWER!
+- IF SOMETHING IS NOT IN THE CV, WRITE "Not mentioned in CV"
+
+RETURN ONLY THIS JSON FORMAT:
+{
+  "overallScore": 75,
+  "strengths": [
+    "First real strength with concrete years, companies or projects from the CV",
+    "Second real strength with measurable successes from the CV",
+    "Third real strength - specific technology knowledge from the CV",
+    "Fourth real strength - concrete leadership experience with team size",
+    "Fifth real strength - relevant certificates or education"
+  ],
+  "gaps": [
+    "First missing qualification based on job requirement",
+    "Second missing qualification - what's required in job but not in CV",
+    "Third missing qualification - skill gap in comparison"
+  ],
+  "recommendations": [
+    "First concrete recommendation to close a gap",
+    "Second recommendation - specific training or education",
+    "Third recommendation - gain experience in missing area"
+  ],
+  "detailedAnalysis": "Several paragraphs with detailed analysis. USE REAL COMPANY NAMES, REAL YEARS, REAL PROJECTS FROM THE CV. At least 300 words.",
+  "comparison": [
+    {
+      "requirement": "Exact requirement 1 copied from job description",
+      "applicant_match": "What's REALLY in the CV about this - with real years/companies/skills",
+      "details": "Concrete justification with real data why full/partial/missing",
+      "match_level": "full",
+      "confidence": 95
+    }
+  ]
+}
+
+IMPORTANT:
+- match_level ONLY: "full", "partial" or "missing"
+- At least 8 comparison items (ALL main requirements individually!)
+- detailedAnalysis at least 300 words
+- All texts in English
+- ONLY return JSON, no additional text
+
+JSON:`
+  }
+
+  private buildSpanishPrompt(cvText: string, jobDescription: string): string {
+    return `Eres un analista de recursos humanos experimentado. Analiza detalladamente la coincidencia entre esta descripción del puesto y el CV del candidato.
+
+DESCRIPCIÓN DEL PUESTO:
+${jobDescription.substring(0, 2000)}
+
+CURRÍCULUM:
+${cvText.substring(0, 2000)}
+
+ANALIZA LOS SIGUIENTES ASPECTOS EN DETALLE:
+
+1. **Cualificaciones Técnicas**: Compara cada requisito con las habilidades/experiencia en el CV
+2. **Experiencia Laboral**: Años, industrias, áreas de responsabilidad, experiencia de liderazgo
+3. **Habilidades Técnicas**: Lenguajes de programación, frameworks, herramientas, certificaciones
+4. **Habilidades Blandas**: Trabajo en equipo, comunicación, resolución de problemas (derivadas de proyectos)
+5. **Ajuste Cultural**: Experiencia en la industria, tipos de empresa (startup vs. corporación)
+6. **Potencial de Desarrollo**: Disposición para aprender, formación, progresión profesional
+
+DIRECTRICES DE EVALUACIÓN:
+- **overallScore**: 0-100%, basado en coincidencia ponderada de todos los requisitos
+- **strengths**: Al menos 5 fortalezas concretas con evidencia del CV
+- **gaps**: Al menos 3 brechas identificadas o cualificaciones faltantes
+- **recommendations**: 3-5 recomendaciones concretas y accionables (formación, educación, ganar experiencia)
+- **detailedAnalysis**: 3-5 párrafos con análisis en profundidad (¿Por qué esta puntuación? ¿Qué factores? ¿Potencial futuro?)
+- **comparison**: Evalúa TODOS los requisitos principales individualmente (¡al menos 8 elementos!)
+  - requirement: Requisito exacto de la descripción del puesto
+  - applicant_match: Cualificación/experiencia concreta del CV
+  - details: Justificación detallada de la evaluación (¡1-2 frases!)
+  - match_level: "full" (100% cumplido), "partial" (parcialmente), "missing" (no presente)
+  - confidence: 0-100% qué tan segura es la evaluación
+
+CRÍTICAMENTE IMPORTANTE:
+- ¡USA SOLO DATOS REALES DE LOS DOCUMENTOS ARRIBA!
+- ¡NO INVENTES INFORMACIÓN!
+- ¡REEMPLAZA TODOS LOS MARCADORES CON HECHOS REALES!
+- ¡NUNCA ESCRIBAS MARCADORES COMO "[...]" EN LA RESPUESTA!
+- SI ALGO NO ESTÁ EN EL CV, ESCRIBE "No mencionado en el CV"
+
+DEVUELVE SOLO ESTE FORMATO JSON:
+{
+  "overallScore": 75,
+  "strengths": [
+    "Primera fortaleza real con años concretos, empresas o proyectos del CV",
+    "Segunda fortaleza real con éxitos medibles del CV",
+    "Tercera fortaleza real - conocimiento tecnológico específico del CV",
+    "Cuarta fortaleza real - experiencia de liderazgo concreta con tamaño del equipo",
+    "Quinta fortaleza real - certificados o educación relevante"
+  ],
+  "gaps": [
+    "Primera cualificación faltante basada en requisito del puesto",
+    "Segunda cualificación faltante - lo que se requiere en el puesto pero no en el CV",
+    "Tercera cualificación faltante - brecha de habilidades en comparación"
+  ],
+  "recommendations": [
+    "Primera recomendación concreta para cerrar una brecha",
+    "Segunda recomendación - formación o educación específica",
+    "Tercera recomendación - ganar experiencia en área faltante"
+  ],
+  "detailedAnalysis": "Varios párrafos con análisis detallado. USA NOMBRES REALES DE EMPRESAS, AÑOS REALES, PROYECTOS REALES DEL CV. Al menos 300 palabras.",
+  "comparison": [
+    {
+      "requirement": "Requisito exacto 1 copiado de la descripción del puesto",
+      "applicant_match": "Lo que REALMENTE está en el CV sobre esto - con años/empresas/habilidades reales",
+      "details": "Justificación concreta con datos reales por qué full/partial/missing",
+      "match_level": "full",
+      "confidence": 95
+    }
+  ]
+}
+
+IMPORTANTE:
+- match_level SOLO: "full", "partial" o "missing"
+- Al menos 8 elementos de comparación (¡TODOS los requisitos principales individualmente!)
+- detailedAnalysis al menos 300 palabras
+- Todos los textos en español
+- SOLO devuelve JSON, sin texto adicional
 
 JSON:`
   }

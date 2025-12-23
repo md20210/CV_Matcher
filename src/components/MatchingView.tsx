@@ -30,7 +30,7 @@ interface MatchingViewProps {
 }
 
 export default function MatchingView({ employerDocs, applicantDocs, llmType, onMatchComplete, matchResult }: MatchingViewProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -153,7 +153,8 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
       const employerText = employerDocs.map(d => d.content).join('\n\n');
       const applicantText = applicantDocs.map(d => d.content).join('\n\n');
 
-      const result = await llmService.analyzeMatch(applicantText, employerText, llmType);
+      // Pass language to LLM service for multilingual analysis
+      const result = await llmService.analyzeMatch(applicantText, employerText, llmType, language);
 
       clearInterval(progressInterval);
       setProgress(100);
