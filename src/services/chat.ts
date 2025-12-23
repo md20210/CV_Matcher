@@ -58,8 +58,8 @@ class ChatService {
       provider: llmType === 'grok' ? 'grok' : 'ollama',
       model: llmType === 'grok' ? 'grok-3' : 'qwen2.5:3b',
       temperature: 0.7,
-      max_tokens: 500,
-      context_limit: 3,
+      max_tokens: 1500,  // Increased for detailed answers with full context
+      context_limit: 10,  // Increased to search ALL documents
       ...(systemContext && { system_context: systemContext }),
       ...(projectId && { project_id: projectId }),
       ...(documents && { documents }),  // NEW: Pass documents if provided

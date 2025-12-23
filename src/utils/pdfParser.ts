@@ -3,10 +3,6 @@ import * as pdfjsLib from 'pdfjs-dist'
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
-interface PDFParseError extends Error {
-  code?: string
-}
-
 /**
  * Extrahiert Text aus einer PDF-Datei
  * @param file - Die PDF-Datei als File-Objekt

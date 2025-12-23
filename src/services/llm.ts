@@ -3,6 +3,7 @@ import { MatchResult } from '../types/index'
 
 interface LLMGenerateRequest {
   prompt: string
+  provider?: string
   model?: string
   temperature?: number
   max_tokens?: number
@@ -18,14 +19,16 @@ class LLMService {
   /**
    * Analysiert die Übereinstimmung zwischen CV und Stellenbeschreibung
    */
-  async analyzeMatch(cvText: string, jobDescription: string): Promise<MatchResult> {
+  async analyzeMatch(cvText: string, jobDescription: string, llmType: 'local' | 'grok' = 'local'): Promise<MatchResult> {
     try {
       const prompt = this.buildMatchAnalysisPrompt(cvText, jobDescription)
 
       const response = await api.post<LLMGenerateResponse>('/llm/generate', {
         prompt,
-        temperature: 0.7,
-        max_tokens: 2000,
+        provider: llmType === 'grok' ? 'grok' : 'ollama',
+        model: llmType === 'grok' ? 'grok-3' : 'qwen2.5:3b',
+        temperature: 0.3,
+        max_tokens: 3000,
       } as LLMGenerateRequest)
 
       const matchResult = this.parseMatchResult(response.data.response)
@@ -42,35 +45,97 @@ class LLMService {
   }
 
   /**
-   * Erstellt den Prompt für die Match-Analyse
+   * Erstellt den Prompt für die Match-Analyse (auf Deutsch für bessere Ergebnisse)
    */
   private buildMatchAnalysisPrompt(cvText: string, jobDescription: string): string {
-    return `Du bist ein Experte für Personalwesen und CV-Analyse. Analysiere die Übereinstimmung zwischen dem folgenden Lebenslauf und der Stellenbeschreibung.
-
-LEBENSLAUF:
-${cvText}
+    return `Du bist ein erfahrener HR-Analyst. Analysiere gründlich die Übereinstimmung zwischen dieser Stellenbeschreibung und dem Bewerber-CV.
 
 STELLENBESCHREIBUNG:
-${jobDescription}
+${jobDescription.substring(0, 2000)}
 
-Analysiere die Übereinstimmung und gib deine Antwort als JSON-Objekt mit folgender Struktur zurück:
+LEBENSLAUF:
+${cvText.substring(0, 2000)}
 
+ANALYSIERE FOLGENDE ASPEKTE DETAILLIERT:
+
+1. **Fachliche Qualifikationen**: Vergleiche jede Anforderung mit den Skills/Erfahrungen im CV
+2. **Berufserfahrung**: Jahre, Branchen, Verantwortungsbereiche, Führungserfahrung
+3. **Technische Skills**: Programmiersprachen, Frameworks, Tools, Zertifizierungen
+4. **Soft Skills**: Teamfähigkeit, Kommunikation, Problemlösung (aus Projekten ableitbar)
+5. **Kulturelle Passung**: Branchenerfahrung, Unternehmenstypen (Startup vs. Konzern)
+6. **Entwicklungspotenzial**: Lernbereitschaft, Weiterbildungen, Karriereprogression
+
+BEWERTUNGS-RICHTLINIEN:
+- **overallScore**: 0-100%, basierend auf gewichteter Übereinstimmung aller Anforderungen
+- **strengths**: Mindestens 5 konkrete Stärken mit Belegen aus dem CV
+- **gaps**: Mindestens 3 identifizierte Lücken oder fehlende Qualifikationen
+- **recommendations**: 3-5 konkrete, umsetzbare Empfehlungen (Weiterbildung, Training, Erfahrung sammeln)
+- **detailedAnalysis**: 3-5 Absätze mit tiefgehender Analyse (Warum der Score? Welche Faktoren? Zukunftspotenzial?)
+- **comparison**: ALLE Hauptanforderungen einzeln bewerten (mindestens 8 Items!)
+  - requirement: Exakte Anforderung aus Stellenbeschreibung
+  - applicant_match: Konkrete Qualifikation/Erfahrung aus CV
+  - details: Detaillierte Begründung der Bewertung (1-2 Sätze!)
+  - match_level: "full" (100% erfüllt), "partial" (teilweise), "missing" (nicht vorhanden)
+  - confidence: 0-100% wie sicher die Bewertung ist
+
+KRITISCH WICHTIG:
+- VERWENDE NUR ECHTE DATEN AUS DEN DOKUMENTEN OBEN!
+- ERFINDE KEINE INFORMATIONEN!
+- ERSETZE ALLE PLATZHALTER MIT ECHTEN FAKTEN!
+- SCHREIBE NIEMALS PLATZHALTER WIE "[...]" IN DIE ANTWORT!
+- WENN ETWAS NICHT IM CV STEHT, SCHREIBE "Nicht im CV erwähnt"
+
+BEISPIEL FÜR STRENGTHS (VERWENDE ECHTE DATEN AUS DEM CV!):
+RICHTIG: "10+ Jahre Erfahrung in KI/ML bei IBM und Microsoft (2010-2023)"
+FALSCH: "[Echte Stärke aus CV mit konkreten Jahren/Projekten]"
+
+GIB NUR DIESES JSON-FORMAT ZURÜCK:
 {
-  "overallScore": <Zahl zwischen 0 und 100>,
-  "strengths": [<Array von Strings mit den Stärken des Kandidaten für diese Position>],
-  "gaps": [<Array von Strings mit fehlenden Qualifikationen oder Lücken>],
-  "recommendations": [<Array von Strings mit Empfehlungen zur Verbesserung der Bewerbung>],
-  "detailedAnalysis": "<Detaillierte Analyse der Übereinstimmung>"
+  "overallScore": 75,
+  "strengths": [
+    "Erste echte Stärke mit konkreten Jahren, Unternehmen oder Projekten aus dem CV",
+    "Zweite echte Stärke mit messbaren Erfolgen aus dem CV",
+    "Dritte echte Stärke - spezifische Technologie-Kenntnisse aus dem CV",
+    "Vierte echte Stärke - konkrete Führungserfahrung mit Teamgröße",
+    "Fünfte echte Stärke - relevante Zertifikate oder Ausbildungen"
+  ],
+  "gaps": [
+    "Erste fehlende Qualifikation basierend auf Stellenanforderung",
+    "Zweite fehlende Qualifikation - was im Job gefordert aber nicht im CV",
+    "Dritte fehlende Qualifikation - Skill-Lücke im Vergleich"
+  ],
+  "recommendations": [
+    "Erste konkrete Empfehlung zum Schließen einer Lücke",
+    "Zweite Empfehlung - spezifische Weiterbildung oder Training",
+    "Dritte Empfehlung - Erfahrung sammeln in fehlendem Bereich"
+  ],
+  "detailedAnalysis": "Mehrere Absätze mit detaillierter Analyse. VERWENDE ECHTE UNTERNEHMENSNAMEN, ECHTE JAHRE, ECHTE PROJEKTE AUS DEM CV. Mindestens 300 Wörter.",
+  "comparison": [
+    {
+      "requirement": "Exakte Anforderung 1 kopiert aus Stellenbeschreibung",
+      "applicant_match": "Was WIRKLICH im CV dazu steht - mit echten Jahren/Unternehmen/Skills",
+      "details": "Konkrete Begründung mit echten Daten warum full/partial/missing",
+      "match_level": "full",
+      "confidence": 95
+    },
+    {
+      "requirement": "Exakte Anforderung 2 kopiert aus Stellenbeschreibung",
+      "applicant_match": "Konkrete Erfahrung aus CV oder 'Nicht im CV erwähnt'",
+      "details": "Begründung mit echten Fakten aus den Dokumenten",
+      "match_level": "partial",
+      "confidence": 80
+    }
+  ]
 }
 
-Bewertungskriterien:
-- Fachliche Qualifikationen und Fähigkeiten
-- Relevante Berufserfahrung
-- Ausbildung und Zertifikate
-- Soft Skills
-- Kulturelle Passung
+WICHTIG:
+- match_level NUR: "full", "partial" oder "missing"
+- Mindestens 8 comparison items (ALLE Hauptanforderungen einzeln!)
+- detailedAnalysis mindestens 300 Wörter
+- Alle Texte auf Deutsch
+- NUR JSON zurückgeben, kein zusätzlicher Text
 
-Gib NUR das JSON-Objekt zurück, ohne zusätzlichen Text davor oder danach.`
+JSON:`
   }
 
   /**
@@ -105,13 +170,29 @@ Gib NUR das JSON-Objekt zurück, ohne zusätzlichen Text davor oder danach.`
       // Stelle sicher, dass der Score im gültigen Bereich liegt
       const overallScore = Math.max(0, Math.min(100, parsed.overallScore))
 
-      return {
+      // Erweiterte Felder sind optional
+      const result: MatchResult = {
         overallScore,
         strengths: parsed.strengths,
         gaps: parsed.gaps,
         recommendations: parsed.recommendations,
         detailedAnalysis: parsed.detailedAnalysis,
       }
+
+      // Füge optionale erweiterte Felder hinzu wenn vorhanden
+      if (parsed.comparison && Array.isArray(parsed.comparison) && parsed.comparison.length > 0) {
+        result.comparison = parsed.comparison
+      }
+
+      if (parsed.riskAssessment && typeof parsed.riskAssessment === 'object') {
+        result.riskAssessment = parsed.riskAssessment
+      }
+
+      if (parsed.developmentPotential && typeof parsed.developmentPotential === 'object') {
+        result.developmentPotential = parsed.developmentPotential
+      }
+
+      return result
     } catch (error: any) {
       console.error('Fehler beim Parsen der LLM-Antwort:', error)
       throw new Error('Die Antwort des LLM konnte nicht verarbeitet werden.')
@@ -119,35 +200,142 @@ Gib NUR das JSON-Objekt zurück, ohne zusätzlichen Text davor oder danach.`
   }
 
   /**
-   * Extrahiert JSON aus der LLM-Antwort
+   * Extrahiert JSON aus der LLM-Antwort mit robuster Fehlerbehandlung
+   * Basiert auf bewährter cvmatcher-Implementierung
    */
   private parseJsonResponse(response: string): any {
-    // Entferne Markdown-Code-Blöcke falls vorhanden
-    let cleaned = response.trim()
-
-    // Entferne ```json und ``` falls vorhanden
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.substring(7)
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.substring(3)
-    }
-
-    if (cleaned.endsWith('```')) {
-      cleaned = cleaned.substring(0, cleaned.length - 3)
-    }
-
-    cleaned = cleaned.trim()
-
-    // Finde JSON-Objekt in der Antwort
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('Kein JSON-Objekt in der Antwort gefunden')
-    }
+    console.log('DEBUG parseJsonResponse - Input length:', response.length)
+    console.log('DEBUG parseJsonResponse - First 200 chars:', response.substring(0, 200))
 
     try {
-      return JSON.parse(jsonMatch[0])
-    } catch (error) {
-      throw new Error('Ungültiges JSON-Format in der Antwort')
+      // Entferne Markdown-Code-Blöcke falls vorhanden
+      let cleaned = response.trim()
+
+      if (cleaned.includes('```json')) {
+        const start = cleaned.indexOf('```json') + 7
+        const end = cleaned.indexOf('```', start)
+        cleaned = end > start ? cleaned.substring(start, end) : cleaned.substring(start)
+        console.log('DEBUG: Extracted from ```json block')
+      } else if (cleaned.includes('```')) {
+        const start = cleaned.indexOf('```') + 3
+        const end = cleaned.indexOf('```', start)
+        cleaned = end > start ? cleaned.substring(start, end) : cleaned.substring(start)
+        console.log('DEBUG: Extracted from ``` block')
+      }
+
+      cleaned = cleaned.trim()
+
+      // Entferne trailing commas (häufiger LLM-Fehler)
+      cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1')
+
+      console.log('DEBUG: Cleaned text length:', cleaned.length)
+
+      // Finde das erste vollständige JSON-Objekt
+      let braceCount = 0
+      let jsonEnd = -1
+      for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] === '{') {
+          braceCount++
+        } else if (cleaned[i] === '}') {
+          braceCount--
+          if (braceCount === 0) {
+            jsonEnd = i + 1
+            break
+          }
+        }
+      }
+
+      if (jsonEnd > 0 && jsonEnd < cleaned.length) {
+        cleaned = cleaned.substring(0, jsonEnd)
+        console.log('DEBUG: Truncated to first complete JSON object')
+      }
+
+      // Versuche JSON zu parsen
+      const result = JSON.parse(cleaned)
+      console.log('DEBUG: JSON parsed successfully')
+
+      // Fixe common LLM mistakes: Convert object arrays to string arrays
+      if (result.strengths && Array.isArray(result.strengths)) {
+        result.strengths = result.strengths.map((item: any) =>
+          typeof item === 'object' && item.name ? item.name : String(item)
+        )
+      }
+
+      if (result.gaps && Array.isArray(result.gaps)) {
+        result.gaps = result.gaps.map((item: any) =>
+          typeof item === 'object' && item.name ? item.name : String(item)
+        )
+      }
+
+      if (result.recommendations && Array.isArray(result.recommendations)) {
+        result.recommendations = result.recommendations.map((item: any) =>
+          typeof item === 'object' && item.name ? item.name : String(item)
+        )
+      }
+
+      return result
+
+    } catch (error: any) {
+      console.error('ERROR: JSON parsing failed:', error.message)
+
+      // Versuche JSON-Reparatur
+      console.log('Attempting to repair JSON...')
+
+      try {
+        let repaired = response.trim()
+
+        // Extrahiere aus Code-Blöcken
+        if (repaired.includes('```')) {
+          const start = repaired.indexOf('{')
+          const lastBrace = repaired.lastIndexOf('}')
+          if (start >= 0 && lastBrace > start) {
+            repaired = repaired.substring(start, lastBrace + 1)
+          }
+        }
+
+        // Repariere häufige Fehler
+        repaired = repaired.replace(/,(\s*[}\]])/g, '$1') // Trailing commas
+        repaired = repaired.replace(/"\s*\n\s*"/g, '",\n    "') // Missing commas between strings
+        repaired = repaired.replace(/"\s*\n\s*"(\w+)":/g, '",\n    "$1":') // Missing commas before properties
+        repaired = repaired.replace(/(\d)\s*\n\s*"/g, '$1,\n    "') // Missing commas after numbers
+        repaired = repaired.replace(/\}\s*\n\s*"/g, '},\n    "') // Missing commas after }
+        repaired = repaired.replace(/\]\s*\n\s*"/g, '],\n    "') // Missing commas after ]
+
+        const repairedResult = JSON.parse(repaired)
+        console.log('JSON repair successful!')
+
+        // Apply object→string array fixes
+        if (repairedResult.strengths && Array.isArray(repairedResult.strengths)) {
+          repairedResult.strengths = repairedResult.strengths.map((item: any) =>
+            typeof item === 'object' && item.name ? item.name : String(item)
+          )
+        }
+        if (repairedResult.gaps && Array.isArray(repairedResult.gaps)) {
+          repairedResult.gaps = repairedResult.gaps.map((item: any) =>
+            typeof item === 'object' && item.name ? item.name : String(item)
+          )
+        }
+        if (repairedResult.recommendations && Array.isArray(repairedResult.recommendations)) {
+          repairedResult.recommendations = repairedResult.recommendations.map((item: any) =>
+            typeof item === 'object' && item.name ? item.name : String(item)
+          )
+        }
+
+        return repairedResult
+
+      } catch (repairError) {
+        console.error('ERROR: JSON repair failed. Full text:', response.substring(0, 500))
+
+        // Fallback: Wenn kein JSON gefunden, erstelle ein Default-Objekt
+        console.warn('Using fallback object due to parse failure')
+        return {
+          overallScore: 50,
+          strengths: ['Allgemeine Qualifikationen vorhanden'],
+          gaps: ['Detaillierte Analyse nicht möglich - JSON Parse Fehler'],
+          recommendations: ['Das Modell konnte kein valides JSON erzeugen. Bitte versuchen Sie es erneut.'],
+          detailedAnalysis: `Die KI konnte keine detaillierte Analyse durchführen. LLM-Antwort: ${response.substring(0, 300)}...`
+        }
+      }
     }
   }
 
@@ -249,6 +437,35 @@ Gib 5-7 konkrete, umsetzbare Verbesserungsvorschläge als JSON-Array zurück:
         }
       }
       throw new Error('Fehler beim Generieren der Verbesserungsvorschläge.')
+    }
+  }
+
+  /**
+   * Generiert Text basierend auf einem Prompt (für CV-Regenerierung)
+   */
+  async generateText(
+    prompt: string,
+    llmType: 'local' | 'grok' = 'local',
+    options?: { max_tokens?: number; temperature?: number }
+  ): Promise<string> {
+    try {
+      const response = await api.post<LLMGenerateResponse>('/llm/generate', {
+        prompt,
+        provider: llmType === 'grok' ? 'grok' : 'ollama',
+        model: llmType === 'grok' ? 'grok-3' : 'qwen2.5:3b',
+        temperature: options?.temperature ?? 0.7,
+        max_tokens: options?.max_tokens ?? 2000,
+      } as LLMGenerateRequest)
+
+      return response.data.response
+    } catch (error: any) {
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail
+        if (typeof detail === 'string') {
+          throw new Error(detail)
+        }
+      }
+      throw new Error('Fehler beim Generieren des Textes.')
     }
   }
 }

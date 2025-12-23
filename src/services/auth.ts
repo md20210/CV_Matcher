@@ -1,4 +1,4 @@
-import { User, LoginRequest, RegisterRequest } from '../types/index'
+import { User, RegisterRequest } from '../types/index'
 
 const API_BASE_URL = 'https://general-backend-production-a734.up.railway.app'
 const TOKEN_KEY = 'auth_token'
@@ -36,12 +36,17 @@ class AuthService {
 
   async login(email: string, password: string): Promise<User> {
     try {
+      // Backend expects form-urlencoded with username field
+      const formData = new URLSearchParams()
+      formData.append('username', email)
+      formData.append('password', password)
+
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({ email, password } as LoginRequest),
+        body: formData,
       })
 
       if (!response.ok) {
@@ -51,7 +56,20 @@ class AuthService {
 
       const data: AuthResponse = await response.json()
       localStorage.setItem(TOKEN_KEY, data.access_token)
-      return data.user
+
+      // Fetch user info with token
+      const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+        },
+      })
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user info')
+      }
+
+      const user: User = await userResponse.json()
+      return user
     } catch (error: any) {
       if (error instanceof Error) {
         throw error

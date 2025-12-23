@@ -1,10 +1,17 @@
-import { useState, useRef, useMemo } from 'react';
-import { Play, Loader, Download } from 'lucide-react';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { Play, Loader, Download, FileText, RefreshCw } from 'lucide-react';
 import { llmService } from '../services/llm';
 import { Chat } from './Chat';
 import { pdfService } from '../services/pdf';
 import type { ChatMessage, InMemoryDocument } from '../services/chat';
 import { useLanguage } from '../contexts/LanguageContext';
+import { documentService, BackendDocument } from '../services/document';
+
+interface GapClaim {
+  gap: string;
+  hasClaim: boolean;
+  justification: string;
+}
 
 interface Document {
   id: string;
@@ -29,13 +36,41 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [cvGenerating, setCvGenerating] = useState(false);
+  const [gapClaims, setGapClaims] = useState<GapClaim[]>([]);
+  const [backendDocs, setBackendDocs] = useState<BackendDocument[]>([]);
   const chatMessagesRef = useRef<ChatMessage[]>([]);
+
+  // Load backend documents on component mount
+  useEffect(() => {
+    const loadBackendDocuments = async () => {
+      try {
+        const summary = await documentService.getDocumentsSummary();
+        const docsFromBackend: BackendDocument[] = summary.documents.map(d => ({
+          id: d.id,
+          user_id: '',
+          type: d.type as any,
+          filename: d.filename,
+          url: d.type === 'url' ? d.filename : undefined,
+          content: d.content,
+          doc_metadata: {},
+          created_at: d.created_at || '',
+          updated_at: d.created_at || ''
+        }));
+        setBackendDocs(docsFromBackend);
+        console.log(`✅ Loaded ${docsFromBackend.length} documents from backend for RAG chat`);
+      } catch (error) {
+        console.error('Failed to load backend documents for chat:', error);
+      }
+    };
+    loadBackendDocuments();
+  }, []);
 
   // Convert documents to InMemoryDocument format for RAG
   const inMemoryDocuments = useMemo((): InMemoryDocument[] => {
     const docs: InMemoryDocument[] = [];
 
-    // Add employer documents
+    // Add employer documents (local)
     employerDocs.forEach(doc => {
       docs.push({
         filename: doc.name,
@@ -44,7 +79,7 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
       });
     });
 
-    // Add applicant documents
+    // Add applicant documents (local)
     applicantDocs.forEach(doc => {
       docs.push({
         filename: doc.name,
@@ -53,8 +88,18 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
       });
     });
 
+    // Add backend documents (from vector database - e.g., URLs like www.dabrock.eu)
+    backendDocs.forEach(doc => {
+      docs.push({
+        filename: doc.filename || doc.url || 'Unknown',
+        content: doc.content,
+        type: doc.type
+      });
+    });
+
+    console.log(`📄 Total documents for RAG: ${docs.length} (local: ${employerDocs.length + applicantDocs.length}, backend: ${backendDocs.length})`);
     return docs;
-  }, [employerDocs, applicantDocs]);
+  }, [employerDocs, applicantDocs, backendDocs]);
 
   const handleDownloadPDF = async () => {
     if (!matchResult) return;
@@ -114,12 +159,159 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
       setProgress(100);
       setProgressMessage(t('progress_completed'));
       onMatchComplete(result);
+
+      // Initialize gap claims from gaps
+      if (result.gaps && result.gaps.length > 0) {
+        const initialClaims: GapClaim[] = result.gaps.map((gap: string) => ({
+          gap,
+          hasClaim: false,
+          justification: ''
+        }));
+        setGapClaims(initialClaims);
+      }
     } catch (err) {
       clearInterval(progressInterval);
       setError(t('error_analysis_failed') + ': ' + (err as Error).message);
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGapClaimChange = (index: number, hasClaim: boolean) => {
+    const updatedClaims = [...gapClaims];
+    updatedClaims[index].hasClaim = hasClaim;
+    setGapClaims(updatedClaims);
+  };
+
+  const handleJustificationChange = (index: number, justification: string) => {
+    const updatedClaims = [...gapClaims];
+    updatedClaims[index].justification = justification;
+    setGapClaims(updatedClaims);
+  };
+
+  const handleGenerateNewCV = async () => {
+    if (!matchResult) return;
+
+    setCvGenerating(true);
+    setError(null);
+
+    try {
+      // Collect claimed gaps with justifications
+      const claimedGaps = gapClaims.filter(claim => claim.hasClaim && claim.justification.trim());
+
+      if (claimedGaps.length === 0) {
+        setError(t('error_no_claims'));
+        setCvGenerating(false);
+        return;
+      }
+
+      // 1. Collect ALL CV content (applicant documents)
+      const cvContent = applicantDocs.map(d =>
+        `=== ${d.name} (${d.type}) ===\n${d.content}`
+      ).join('\n\n');
+
+      // 2. Collect ALL additional information from employer documents (job description, URLs, etc.)
+      const additionalInfo = employerDocs.map(d =>
+        `=== ${d.name} (${d.type}) ===\n${d.content}`
+      ).join('\n\n');
+
+      // 3. Collect chat history for context
+      const chatHistory = chatMessagesRef.current.length > 0
+        ? chatMessagesRef.current.map(msg =>
+            `${msg.role === 'user' ? 'Question' : 'Answer'}: ${msg.content}`
+          ).join('\n\n')
+        : 'No chat history available';
+
+      // 4. Collect match analysis results
+      const analysisContext = `
+Match Score: ${matchResult.overallScore}%
+
+Strengths:
+${matchResult.strengths?.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n') || 'None'}
+
+Identified Gaps:
+${matchResult.gaps?.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n') || 'None'}
+
+Recommendations:
+${matchResult.recommendations?.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n') || 'None'}
+
+${matchResult.detailedAnalysis ? `Detailed Analysis:\n${matchResult.detailedAnalysis}` : ''}
+`;
+
+      // 5. Prepare comprehensive prompt for LLM
+      const prompt = `${t('cv_regenerate_prompt')}
+
+==============================================
+ORIGINAL CV CONTENT:
+==============================================
+${cvContent}
+
+==============================================
+JOB REQUIREMENTS & ADDITIONAL CONTEXT:
+==============================================
+${additionalInfo}
+
+==============================================
+MATCH ANALYSIS RESULTS:
+==============================================
+${analysisContext}
+
+==============================================
+CHAT HISTORY (Questions & Answers):
+==============================================
+${chatHistory}
+
+==============================================
+CLAIMED MISSING QUALIFICATIONS WITH JUSTIFICATIONS:
+==============================================
+${claimedGaps.map((claim, i) => `
+${i + 1}. Missing Qualification: ${claim.gap}
+
+   Candidate Claims: "I DO have this qualification"
+
+   Justification/Evidence:
+   ${claim.justification}
+
+   → Use this justification to update the CV with concrete details!
+`).join('\n---\n')}
+
+==============================================
+${t('cv_regenerate_instructions')}
+
+IMPORTANT:
+- Integrate ALL claimed qualifications naturally into the CV
+- Use the justifications as concrete examples and evidence
+- Reference information from job requirements, chat history, and analysis
+- Maintain professional CV formatting
+- Add new sections if needed (e.g., "Additional Skills", "Projects")
+- Be specific with dates, tools, technologies mentioned in justifications
+- Make it coherent and believable based on ALL available information
+==============================================`;
+
+      // Call LLM service with longer max_tokens for comprehensive CV
+      const response = await llmService.generateText(prompt, llmType, {
+        max_tokens: 3000,  // Allow for longer CV generation
+        temperature: 0.7
+      });
+
+      // Download as new CV file
+      const blob = new Blob([response], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `updated_cv_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert(t('cv_regenerate_success'));
+    } catch (err: any) {
+      setError(t('error_cv_regenerate_failed') + ': ' + err.message);
+      console.error(err);
+    } finally {
+      setCvGenerating(false);
     }
   };
 
@@ -172,10 +364,11 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
       {/* Results */}
       {matchResult && !loading && (
         <div className="space-y-6">
-          {/* Score Circle */}
+          {/* Score Circle with Dynamic Color */}
           <div className="flex justify-center mb-8">
             <div className="relative w-32 h-32">
               <svg className="transform -rotate-90 w-32 h-32">
+                {/* Background circle */}
                 <circle
                   cx="64"
                   cy="64"
@@ -185,21 +378,32 @@ export default function MatchingView({ employerDocs, applicantDocs, llmType, onM
                   fill="transparent"
                   className="text-gray-200"
                 />
+                {/* Progress circle with gradient - Blue (good) to Red (bad) */}
+                <defs>
+                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+                    <stop offset="30%" style={{ stopColor: '#14b8a6', stopOpacity: 1 }} />
+                    <stop offset="50%" style={{ stopColor: '#eab308', stopOpacity: 1 }} />
+                    <stop offset="70%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#ef4444', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
                 <circle
                   cx="64"
                   cy="64"
                   r="56"
-                  stroke="currentColor"
+                  stroke="url(#scoreGradient)"
                   strokeWidth="8"
                   fill="transparent"
                   strokeDasharray={`${2 * Math.PI * 56}`}
                   strokeDashoffset={`${2 * Math.PI * 56 * (1 - matchResult.overallScore / 100)}`}
-                  className="text-blue-600 transition-all duration-1000"
+                  className="transition-all duration-1000"
                   strokeLinecap="round"
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center flex-col">
                 <span className="text-4xl font-bold text-gray-800">{matchResult.overallScore}</span>
+                <span className="text-xs text-gray-500 font-medium">%</span>
               </div>
             </div>
           </div>
@@ -355,6 +559,94 @@ ${matchResult.detailedAnalysis || 'N/A'}`}
               chatMessagesRef.current = messages;
             }}
           />
+
+          {/* Gap Claims Section */}
+          {gapClaims.length > 0 && (
+            <div className="mt-6 bg-yellow-50 rounded-lg border border-yellow-200 p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <FileText className="text-yellow-600" size={24} />
+                {t('gap_claims_title')}
+              </h3>
+              <p className="text-gray-600 mb-4">{t('gap_claims_description')}</p>
+
+              <div className="space-y-4">
+                {gapClaims.map((claim, index) => (
+                  <div key={index} className="bg-white rounded-lg p-4 border border-yellow-200">
+                    <div className="flex items-start gap-4">
+                      {/* Radio Button */}
+                      <div className="flex items-center gap-2 min-w-fit pt-1">
+                        <input
+                          type="checkbox"
+                          id={`claim-${index}`}
+                          checked={claim.hasClaim}
+                          onChange={(e) => handleGapClaimChange(index, e.target.checked)}
+                          className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor={`claim-${index}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                          {t('gap_claims_i_have_this')}
+                        </label>
+                      </div>
+
+                      {/* Gap Text & Justification */}
+                      <div className="flex-1 space-y-2">
+                        <p className="text-gray-800 font-medium">{claim.gap}</p>
+
+                        {claim.hasClaim && (
+                          <div>
+                            <label htmlFor={`justification-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
+                              {t('gap_claims_justification')}
+                            </label>
+                            <textarea
+                              id={`justification-${index}`}
+                              value={claim.justification}
+                              onChange={(e) => handleJustificationChange(index, e.target.value)}
+                              placeholder={t('gap_claims_justification_placeholder')}
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CV Regeneration Section */}
+          {gapClaims.some(claim => claim.hasClaim && claim.justification.trim()) && (
+            <div className="mt-6 bg-blue-50 rounded-lg border border-blue-200 p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <RefreshCw className="text-blue-600" size={24} />
+                {t('cv_regenerate_title')}
+              </h3>
+              <p className="text-gray-600 mb-4">{t('cv_regenerate_description')}</p>
+
+              <button
+                type="button"
+                onClick={handleGenerateNewCV}
+                disabled={cvGenerating}
+                className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold text-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
+              >
+                {cvGenerating ? (
+                  <>
+                    <Loader className="animate-spin" size={24} />
+                    {t('cv_regenerate_generating')}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={24} />
+                    {t('cv_regenerate_button')}
+                  </>
+                )}
+              </button>
+
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                {t('cv_regenerate_note')}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

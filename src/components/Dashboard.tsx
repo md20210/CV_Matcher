@@ -1,9 +1,20 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { SkeletonProjectCard } from './common/SkeletonCard'
 
 export function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading initial data
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -48,14 +59,21 @@ export function Dashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+        <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-2 text-gray-600">
             Willkommen zurück, {user?.email}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <SkeletonProjectCard />
+            <SkeletonProjectCard />
+            <SkeletonProjectCard />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
           <Link
             to="/matcher"
             className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
@@ -127,7 +145,8 @@ export function Dashboard() {
             </h3>
             <p className="text-gray-600">Bald verfügbar</p>
           </div>
-        </div>
+          </div>
+        )}
       </main>
     </div>
   )

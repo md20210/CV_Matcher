@@ -1,51 +1,144 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
-import Landing from './components/Landing';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import Dashboard from './components/Dashboard';
-import CVMatcherPage from './components/matching/CVMatcherPage';
-import NotFound from './components/NotFound';
-import ErrorBoundary from './components/ErrorBoundary';
+import { useState, useEffect } from 'react';
+import { authService } from './services/auth';
+import { api } from './services/api';
+import DocumentSection from './components/DocumentSection';
+import MatchingView from './components/MatchingView';
+import { LanguageToggle } from './components/LanguageToggle';
+import { useLanguage } from './contexts/LanguageContext';
+
+interface Document {
+  id: string;
+  name: string;
+  type: string;
+  content: string;
+  side: 'employer' | 'applicant';
+}
 
 function App() {
+  const { t } = useLanguage();
+  const [llmType, setLlmType] = useState<'local' | 'grok'>('local');
+  const [employerDocs, setEmployerDocs] = useState<Document[]>([]);
+  const [applicantDocs, setApplicantDocs] = useState<Document[]>([]);
+  const [matchResult, setMatchResult] = useState<any>(null);
+
+  // Auto-login mit Test-User für Showcase
+  useEffect(() => {
+    const initializeApp = async () => {
+      // 1. Auto-Login
+      if (!authService.isAuthenticated()) {
+        try {
+          await authService.login('test@dabrock.info', 'Test123Secure');
+          console.log('✅ Auto-login successful');
+        } catch (err) {
+          console.error('❌ Auto-login failed:', err);
+          return;
+        }
+      }
+
+      // 2. Cleanup documents - ONLY on first load (not on every reload)
+      // Check if this is truly a fresh session (no documents loaded yet)
+      const hasCleanedThisSession = sessionStorage.getItem('cv_matcher_cleaned');
+      if (!hasCleanedThisSession) {
+        try {
+          const response = await api.delete('/documents/cleanup');
+          console.log(`🧹 Cleaned up ${response.data.deleted_count} document(s) from previous session`);
+          sessionStorage.setItem('cv_matcher_cleaned', 'true');
+        } catch (err) {
+          console.error('⚠️ Document cleanup failed (non-critical):', err);
+          // Continue - cleanup failure shouldn't block app
+        }
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  const handleDocumentAdded = (doc: Document) => {
+    if (doc.side === 'employer') {
+      setEmployerDocs(prev => [...prev, doc]);
+    } else {
+      setApplicantDocs(prev => [...prev, doc]);
+    }
+  };
+
+  const handleDocumentDeleted = (docId: string, side: 'employer' | 'applicant') => {
+    if (side === 'employer') {
+      setEmployerDocs(prev => prev.filter(d => d.id !== docId));
+    } else {
+      setApplicantDocs(prev => prev.filter(d => d.id !== docId));
+    }
+  };
+
+  const handleMatchComplete = (result: any) => {
+    setMatchResult(result);
+  };
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cv-matcher"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CVMatcherPage />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/not-found" element={<NotFound />} />
-            <Route path="*" element={<Navigate to="/not-found" replace />} />
-          </Routes>
-        </ErrorBoundary>
-      </BrowserRouter>
-    </AuthProvider>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-blue-600">{t('app_title')}</h1>
+
+          <div className="flex items-center gap-4">
+            {/* Language Toggle */}
+            <LanguageToggle />
+
+            {/* LLM Toggle */}
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setLlmType('local')}
+                className={`px-4 py-2 rounded-md font-medium transition-all ${
+                  llmType === 'local'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {t('llm_toggle_local')}
+              </button>
+              <button
+                onClick={() => setLlmType('grok')}
+                className={`px-4 py-2 rounded-md font-medium transition-all ${
+                  llmType === 'grok'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {t('llm_toggle_grok')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Two-Column Document Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <DocumentSection
+            side="employer"
+            docs={employerDocs}
+            onDocumentAdded={handleDocumentAdded}
+            onDocumentDeleted={handleDocumentDeleted}
+          />
+          <DocumentSection
+            side="applicant"
+            docs={applicantDocs}
+            onDocumentAdded={handleDocumentAdded}
+            onDocumentDeleted={handleDocumentDeleted}
+          />
+        </div>
+
+        {/* Matching View */}
+        <MatchingView
+          employerDocs={employerDocs}
+          applicantDocs={applicantDocs}
+          llmType={llmType}
+          onMatchComplete={handleMatchComplete}
+          matchResult={matchResult}
+        />
+      </main>
+    </div>
   );
 }
 

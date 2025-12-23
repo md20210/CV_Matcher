@@ -71,10 +71,37 @@ export interface JobDescription {
   rawText: string
 }
 
+// Extended Match Result Types
+export interface ComparisonItem {
+  requirement: string
+  applicant_match: string
+  details: string
+  match_level: 'full' | 'partial' | 'missing'
+  confidence: number
+}
+
+export interface RiskAssessment {
+  overall_risk: 'low' | 'medium' | 'high'
+  factors: string[]
+  mitigation_strategies: string[]
+}
+
+export interface DevelopmentPotential {
+  score: number
+  areas: string[]
+  timeline: string
+  recommendations: string[]
+}
+
 export interface MatchResult {
   overallScore: number
   strengths: string[]
   gaps: string[]
   recommendations: string[]
   detailedAnalysis: string
+
+  // Extended fields
+  comparison?: ComparisonItem[]
+  riskAssessment?: RiskAssessment
+  developmentPotential?: DevelopmentPotential
 }
