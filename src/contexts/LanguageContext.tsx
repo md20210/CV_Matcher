@@ -48,7 +48,12 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   useEffect(() => {
     const fetchTranslations = async () => {
       try {
-        setLoading(true);
+        // Only show loading on initial load, not on language switches
+        const isInitialLoad = Object.keys(translations).length === 0;
+        if (isInitialLoad) {
+          setLoading(true);
+        }
+
         // Add cache-busting timestamp to always get fresh translations
         const response = await api.get(`/translations/${language}?t=${Date.now()}`);
         setTranslations(response.data.translations);

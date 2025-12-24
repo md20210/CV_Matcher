@@ -15,7 +15,7 @@ interface Document {
 }
 
 function App() {
-  const { t } = useLanguage();
+  const { t, loading } = useLanguage();
   const [llmType, setLlmType] = useState<'local' | 'grok'>('local');
   const [employerDocs, setEmployerDocs] = useState<Document[]>([]);
   const [applicantDocs, setApplicantDocs] = useState<Document[]>([]);
@@ -72,6 +72,18 @@ function App() {
   const handleMatchComplete = (result: any) => {
     setMatchResult(result);
   };
+
+  // Show loading screen until translations are loaded
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
