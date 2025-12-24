@@ -38,7 +38,7 @@ const CVMatcherPage: React.FC = () => {
   const { user } = useAuth()
 
   // Hole Projekt-ID aus Query-Parametern
-  const projectId = searchParams.get('project_id')
+  const projectId = searchParams.get('cv_matcher_project_id')
 
   // Lade Projekte wenn Benutzer eingeloggt ist
   useEffect(() => {

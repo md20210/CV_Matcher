@@ -46,7 +46,7 @@ export const Chat: React.FC<ChatProps> = ({ llmType, systemContext, projectId, d
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    setInput('cv_matcher_');
     setLoading(true);
 
     try {
@@ -86,18 +86,18 @@ export const Chat: React.FC<ChatProps> = ({ llmType, systemContext, projectId, d
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h3>{t('chat_title')}</h3>
+        <h3>{t('cv_matcher_chat_title')}</h3>
         <button onClick={handleClear} className="btn-clear" disabled={messages.length === 0}>
-          {t('chat_clear_button')}
+          {t('cv_matcher_chat_clear_button')}
         </button>
       </div>
 
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <p>{t('chat_empty_message')}</p>
+            <p>{t('cv_matcher_chat_empty_message')}</p>
             <p className="chat-examples">
-              {t('chat_examples')}
+              {t('cv_matcher_chat_examples')}
               <br />• "{t('chat_example_1')}"
               <br />• "{t('chat_example_2')}"
               <br />• "{t('chat_example_3')}"
@@ -109,7 +109,7 @@ export const Chat: React.FC<ChatProps> = ({ llmType, systemContext, projectId, d
           <div key={idx} className={`chat-message ${msg.role}`}>
             <div className="message-header">
               <span className="message-role">
-                {msg.role === 'user' ? `👤 ${t('chat_user_label')}` : `🤖 ${t('chat_assistant_label')}`}
+                {msg.role === 'user' ? `👤 ${t('cv_matcher_chat_user_label')}` : `🤖 ${t('cv_matcher_chat_assistant_label')}`}
               </span>
               <span className="message-time">
                 {msg.timestamp.toLocaleTimeString('de-DE', {
@@ -121,7 +121,7 @@ export const Chat: React.FC<ChatProps> = ({ llmType, systemContext, projectId, d
             <div className="message-content">{msg.content}</div>
             {msg.sources && msg.sources.length > 0 && (
               <div className="message-sources">
-                <span className="sources-label">📚 {t('chat_sources_label')}</span>
+                <span className="sources-label">📚 {t('cv_matcher_chat_sources_label')}</span>
                 {msg.sources.map((source, sidx) => (
                   <span key={sidx} className="source-tag">
                     {source.filename || source.type} ({Math.round(source.relevance_score * 100)}%)
@@ -135,7 +135,7 @@ export const Chat: React.FC<ChatProps> = ({ llmType, systemContext, projectId, d
         {loading && (
           <div className="chat-message assistant loading">
             <div className="message-header">
-              <span className="message-role">{`🤖 ${t('chat_assistant_label')}`}</span>
+              <span className="message-role">{`🤖 ${t('cv_matcher_chat_assistant_label')}`}</span>
             </div>
             <div className="message-content">
               <div className="typing-indicator">
@@ -155,12 +155,12 @@ export const Chat: React.FC<ChatProps> = ({ llmType, systemContext, projectId, d
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={t('chat_input_placeholder')}
+          placeholder={t('cv_matcher_chat_input_placeholder')}
           className="chat-input"
           disabled={loading}
         />
         <button type="submit" className="btn-send" disabled={!input.trim() || loading}>
-          {loading ? '⏳' : '📤'} {t('chat_send_button')}
+          {loading ? '⏳' : '📤'} {t('cv_matcher_chat_send_button')}
         </button>
       </form>
     </div>

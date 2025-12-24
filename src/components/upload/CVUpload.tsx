@@ -38,7 +38,7 @@ export function CVUpload({ onCVParsed }: CVUploadProps) {
 
   const handleFileSelect = (file: File) => {
     setError('')
-    setExtractedText('')
+    setExtractedText('cv_matcher_')
 
     if (!validateFile(file)) {
       return
@@ -97,7 +97,7 @@ export function CVUpload({ onCVParsed }: CVUploadProps) {
       setExtractedText(text)
     } catch (err: any) {
       setError(err.message || 'Fehler beim Parsen der PDF-Datei')
-      setExtractedText('')
+      setExtractedText('cv_matcher_')
     } finally {
       setIsParsing(false)
     }
@@ -111,7 +111,7 @@ export function CVUpload({ onCVParsed }: CVUploadProps) {
 
   const handleReset = () => {
     setSelectedFile(null)
-    setExtractedText('')
+    setExtractedText('cv_matcher_')
     setError('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''

@@ -26,7 +26,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
     setError('')
 
     if (!jobDescription.trim()) {
-      setError(t('job_desc_error_empty'))
+      setError(t('cv_matcher_job_desc_error_empty'))
       return
     }
 
@@ -53,10 +53,10 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {t('job_desc_title')}
+          {t('cv_matcher_job_desc_title')}
         </h2>
         <p className="text-gray-600">
-          {t('job_desc_subtitle')}
+          {t('cv_matcher_job_desc_subtitle')}
         </p>
       </div>
 
@@ -91,7 +91,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               htmlFor="job-title"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {t('job_title_label')}
+              {t('cv_matcher_job_title_label')}
             </label>
             <input
               type="text"
@@ -99,7 +99,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               value={jobTitle}
               onChange={(e) => setJobTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              placeholder={t('job_title_placeholder')}
+              placeholder={t('cv_matcher_job_title_placeholder')}
             />
           </div>
 
@@ -108,7 +108,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               htmlFor="company-name"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {t('company_name_label')}
+              {t('cv_matcher_company_name_label')}
             </label>
             <input
               type="text"
@@ -116,7 +116,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              placeholder={t('company_name_placeholder')}
+              placeholder={t('cv_matcher_company_name_placeholder')}
             />
           </div>
         </div>
@@ -127,7 +127,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               htmlFor="job-description"
               className="block text-sm font-medium text-gray-700"
             >
-              {t('job_description_label')}
+              {t('cv_matcher_job_description_label')}
             </label>
             <span
               className={`text-sm ${
@@ -138,7 +138,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
                   : 'text-gray-500'
               }`}
             >
-              {characterCount} / {MIN_CHARACTERS} {t('characters')}
+              {characterCount} / {MIN_CHARACTERS} {t('cv_matcher_characters')}
             </span>
           </div>
           <textarea
@@ -147,7 +147,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
             onChange={handleJobDescriptionChange}
             rows={15}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            placeholder={t('job_description_placeholder')}
+            placeholder={t('cv_matcher_job_description_placeholder')}
             required
           />
           <p className="mt-2 text-sm text-gray-500">
@@ -200,7 +200,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-green-800">
-                  {t('job_desc_ready')}
+                  {t('cv_matcher_job_desc_ready')}
                 </p>
               </div>
             </div>
@@ -226,7 +226,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
               />
             </svg>
-            {t('analyze_match')}
+            {t('cv_matcher_analyze_match')}
           </button>
           {(jobDescription || jobTitle || companyName) && (
             <button
@@ -234,7 +234,7 @@ export function JobDescriptionInput({ onAnalyze }: JobDescriptionInputProps) {
               onClick={handleReset}
               className="inline-flex items-center px-4 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
             >
-              {t('reset')}
+              {t('cv_matcher_reset')}
             </button>
           )}
         </div>

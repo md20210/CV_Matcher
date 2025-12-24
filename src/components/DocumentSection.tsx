@@ -58,7 +58,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
     }
   };
 
-  const title = side === 'employer' ? t('employer_section_title') : t('applicant_section_title');
+  const title = side === 'employer' ? t('cv_matcher_employer_section_title') : t('cv_matcher_applicant_section_title');
   const bgColor = side === 'employer' ? 'bg-blue-50' : 'bg-green-50';
   const borderColor = side === 'employer' ? 'border-blue-200' : 'border-green-200';
 
@@ -143,7 +143,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
 
       onDocumentAdded(newDoc);
       console.log(`✅ Uploaded text to backend (ID: ${backendDoc.id})`);
-      setText('');
+      setText('cv_matcher_');
     } catch (error: any) {
       console.error('❌ Error adding text:', error);
       alert(`Upload failed: ${error.response?.data?.detail || error.message}`);
@@ -217,7 +217,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
           }`}
         >
           <Upload size={18} />
-          {t('doc_tab_upload')}
+          {t('cv_matcher_doc_tab_upload')}
         </button>
         <button
           onClick={() => setActiveTab('url')}
@@ -228,7 +228,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
           }`}
         >
           <Link size={18} />
-          {t('doc_tab_url')}
+          {t('cv_matcher_doc_tab_url')}
         </button>
         <button
           onClick={() => setActiveTab('text')}
@@ -239,7 +239,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
           }`}
         >
           <FileText size={18} />
-          {t('doc_tab_text')}
+          {t('cv_matcher_doc_tab_text')}
         </button>
       </div>
 
@@ -256,7 +256,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
             onDrop={handleDrop}
           >
             <Upload className="mx-auto mb-4 text-gray-400" size={48} />
-            <p className="text-gray-600 mb-2">{t('doc_drop_file')}</p>
+            <p className="text-gray-600 mb-2">{t('cv_matcher_doc_drop_file')}</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -269,7 +269,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? t('doc_loading') : t('doc_select_file')}
+              {loading ? t('cv_matcher_doc_loading') : t('cv_matcher_doc_select_file')}
             </button>
           </div>
         )}
@@ -280,7 +280,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder={t('doc_url_placeholder')}
+              placeholder={t('cv_matcher_doc_url_placeholder')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
@@ -288,7 +288,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
               disabled={loading || !url.trim()}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? t('doc_loading') : t('doc_add_url')}
+              {loading ? t('cv_matcher_doc_loading') : t('cv_matcher_doc_add_url')}
             </button>
           </form>
         )}
@@ -298,7 +298,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={t('doc_text_placeholder')}
+              placeholder={t('cv_matcher_doc_text_placeholder')}
               rows={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
@@ -307,7 +307,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
               disabled={loading || !text.trim()}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? t('doc_loading') : t('doc_add_text')}
+              {loading ? t('cv_matcher_doc_loading') : t('cv_matcher_doc_add_text')}
             </button>
           </form>
         )}
@@ -316,7 +316,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
       {/* Document List */}
       <div className="space-y-2">
         {docs.length === 0 && (
-          <p className="text-gray-500 text-center py-4">{t('doc_no_documents')}</p>
+          <p className="text-gray-500 text-center py-4">{t('cv_matcher_doc_no_documents')}</p>
         )}
         {docs.map((doc) => (
           <div
@@ -335,7 +335,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                   setPreviewDoc(doc);
                 }}
                 className="text-blue-500 hover:text-blue-700 p-1 flex-shrink-0"
-                title={t('doc_preview')}
+                title={t('cv_matcher_doc_preview')}
               >
                 <Eye size={18} />
               </button>
@@ -345,7 +345,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                   onDocumentDeleted(doc.id, side);
                 }}
                 className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
-                title={t('doc_delete')}
+                title={t('cv_matcher_doc_delete')}
               >
                 <Trash2 size={18} />
               </button>
@@ -362,7 +362,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
             className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 font-medium"
           >
             <FileStack size={20} />
-            {t('doc_summary_button')}
+            {t('cv_matcher_doc_summary_button')}
           </button>
         </div>
       )}
@@ -384,9 +384,9 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">{previewDoc.name}</h3>
                   <p className="text-sm text-gray-500">
-                    {previewDoc.type === 'file' ? t('doc_type_file') :
-                     previewDoc.type === 'url' ? t('doc_type_url') :
-                     t('doc_type_text')}
+                    {previewDoc.type === 'file' ? t('cv_matcher_doc_type_file') :
+                     previewDoc.type === 'url' ? t('cv_matcher_doc_type_url') :
+                     t('cv_matcher_doc_type_text')}
                   </p>
                 </div>
               </div>
@@ -410,13 +410,13 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
             {/* Modal Footer */}
             <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600">
-                {t('doc_content_length')}: {previewDoc.content.length.toLocaleString()} {t('doc_characters')}
+                {t('cv_matcher_doc_content_length')}: {previewDoc.content.length.toLocaleString()} {t('cv_matcher_doc_characters')}
               </div>
               <button
                 onClick={() => setPreviewDoc(null)}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {t('doc_close')}
+                {t('cv_matcher_doc_close')}
               </button>
             </div>
           </div>
@@ -438,9 +438,9 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
               <div className="flex items-center gap-3">
                 <FileStack className="text-white" size={24} />
                 <div>
-                  <h3 className="text-lg font-semibold text-white">{t('doc_summary_title')}</h3>
+                  <h3 className="text-lg font-semibold text-white">{t('cv_matcher_doc_summary_title')}</h3>
                   <p className="text-sm text-purple-100">
-                    {side === 'employer' ? t('employer_section_title') : t('applicant_section_title')}
+                    {side === 'employer' ? t('cv_matcher_employer_section_title') : t('cv_matcher_applicant_section_title')}
                   </p>
                 </div>
               </div>
@@ -463,21 +463,21 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                         <FileStack className="text-purple-600" size={24} />
                       </div>
                       <div className="text-2xl font-bold text-purple-600 text-center">{summary.totalDocs}</div>
-                      <div className="text-sm text-gray-600 text-center">{t('doc_summary_total_docs')}</div>
+                      <div className="text-sm text-gray-600 text-center">{t('cv_matcher_doc_summary_total_docs')}</div>
                     </div>
                     <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
                       <div className="flex items-center justify-center mb-2">
                         <FileText className="text-indigo-600" size={24} />
                       </div>
                       <div className="text-2xl font-bold text-indigo-600 text-center">{summary.totalWords.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600 text-center">{t('doc_summary_words')}</div>
+                      <div className="text-sm text-gray-600 text-center">{t('cv_matcher_doc_summary_words')}</div>
                     </div>
                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                       <div className="flex items-center justify-center mb-2">
                         <FileText className="text-blue-600" size={24} />
                       </div>
                       <div className="text-2xl font-bold text-blue-600 text-center">{summary.totalChars.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600 text-center">{t('doc_characters')}</div>
+                      <div className="text-sm text-gray-600 text-center">{t('cv_matcher_doc_characters')}</div>
                     </div>
                   </div>
 
@@ -485,7 +485,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                       <FileText className="text-gray-600" size={20} />
-                      {t('doc_summary_details')}:
+                      {t('cv_matcher_doc_summary_details')}:
                     </h4>
                     <div className="space-y-2">
                       {summary.documents.map((doc, idx) => (
@@ -496,8 +496,8 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                               <span className="text-sm font-medium text-gray-700">{doc.name}</span>
                             </div>
                             <div className="flex gap-4 text-xs text-gray-500">
-                              <span>{doc.wordCount} {t('doc_summary_words')}</span>
-                              <span>{doc.charCount} {t('doc_characters')}</span>
+                              <span>{doc.wordCount} {t('cv_matcher_doc_summary_words')}</span>
+                              <span>{doc.charCount} {t('cv_matcher_doc_characters')}</span>
                             </div>
                           </div>
                         </div>
@@ -509,7 +509,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                       <FileStack className="text-gray-600" size={20} />
-                      {t('doc_summary_total_content')}:
+                      {t('cv_matcher_doc_summary_total_content')}:
                     </h4>
                     <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                       <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono max-h-96 overflow-y-auto">
@@ -527,7 +527,7 @@ export default function DocumentSection({ side, docs, onDocumentAdded, onDocumen
                 onClick={() => setShowSummary(false)}
                 className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors"
               >
-                {t('doc_close')}
+                {t('cv_matcher_doc_close')}
               </button>
             </div>
           </div>

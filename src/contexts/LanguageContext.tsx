@@ -109,7 +109,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
  * @returns Language context with t() function, language state, and setLanguage
  * @example
  * const { t, language, setLanguage } = useLanguage();
- * return <h1>{t('app_title')}</h1>
+ * return <h1>{t('cv_matcher_app_title')}</h1>
  */
 export const useLanguage = (): LanguageContextType => {
   const context = useContext(LanguageContext);
